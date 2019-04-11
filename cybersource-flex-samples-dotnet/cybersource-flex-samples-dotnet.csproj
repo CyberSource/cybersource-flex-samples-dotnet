@@ -8,6 +8,12 @@
     <PackageReference Include="CyberSource.Rest.Client" Version="0.0.0.6" />
     <PackageReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="Microsoft.AspNetCore.Razor.Design" Version="2.1.2" PrivateAssets="All" />
+    <PackageReference Include="RestSharp" Version="106.5.3" />
+	<PackageReference Include="CyberSource.Authentication" Version="0.0.0.3" />
+	<PackageReference Include="NLog" Version="4.5.10" />
+	<PackageReference Include="NLog.Config" Version="4.5.10" />
+	<PackageReference Include="NLog.Schema" Version="4.5.10" />
+	<PackageReference Include="System.Configuration.ConfigurationManager" Version="4.5.0" />
   </ItemGroup>
 
   <ItemGroup>
