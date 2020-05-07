@@ -1,13 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Web;
-using System.Web.Mvc;
-using CyberSource.Api;
+﻿using CyberSource.Api;
 using CyberSource.Model;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+using System;
+using System.Collections.Generic;
+using System.Web.Mvc;
 
 namespace flex_microform_sample.Controllers
 {
@@ -20,6 +15,14 @@ namespace flex_microform_sample.Controllers
 
             ViewBag.Jwk = "{\"kid\":\"HKJHKJ\"}";
 
+
+
+            /**
+             * Generating Capture Context Request Payload
+             * Defining Encryption Type = RsaOaep
+             * Defining TargetOrigin = http://localhost:65309
+             * 
+             */
             var requestObj = new GeneratePublicKeyRequest("RsaOaep256", "http://localhost:65309");
 
             try
@@ -28,13 +31,14 @@ namespace flex_microform_sample.Controllers
                 var clientConfig = new CyberSource.Client.Configuration(merchConfigDictObj: configDictionary);
                 var apiInstance = new KeyGenerationApi(clientConfig);
 
-                var result = apiInstance.GeneratePublicKey(requestObj);
+                /**
+                 * Initiating public Key request 
+                 * query paramiter set to format=JWT for Flex 11
+                 */
+                var result = apiInstance.GeneratePublicKey(requestObj, "JWT");
                 Console.WriteLine(result);
-                Console.WriteLine(result.Jwk.ToString());
-                Console.WriteLine(result.Jwk.ToJson().ToString());
-
-
-                ViewBag.Jwk = result.Jwk.ToJson().Replace("\r\n", "").Replace(@"\", "");
+                Console.WriteLine(result.KeyId);
+                ViewBag.Jwk = result.KeyId;
 
             }
             catch (Exception e)
@@ -48,11 +52,91 @@ namespace flex_microform_sample.Controllers
 
         public ActionResult Receipt()
         {
-            dynamic flexObj = JValue.Parse(Request.Params["flexresponse"]);
+            dynamic flexObj = Request.Params["flexResponse"];
 
-            ViewBag.Token = flexObj.token;
-            ViewBag.MaskedPan = flexObj.maskedPan;
-            ViewBag.Signature = flexObj.signature;
+
+            /**
+             * Processing Authorization Request
+             * Code developed from CyberSource Rest Samples csharp
+             * https://github.com/CyberSource/cybersource-rest-samples-csharp
+             */
+
+            var processingInformationObj = new Ptsv2paymentsProcessingInformation() { CommerceIndicator = "internet" };
+
+            var clientReferenceInformationObj = new Ptsv2paymentsClientReferenceInformation { Code = "test_payment" };
+
+
+            var orderInformationObj = new Ptsv2paymentsOrderInformation();
+
+            var billToObj = new Ptsv2paymentsOrderInformationBillTo
+            {
+                Country = "US",
+                FirstName = "John",
+                LastName = "Doe",
+                Address1 = "1 Market St",
+                PostalCode = "94105",
+                Locality = "San Francisco",
+                AdministrativeArea = "CA",
+                Email = "test@cybs.com"
+            };
+
+            orderInformationObj.BillTo = billToObj;
+
+            var amountDetailsObj = new Ptsv2paymentsOrderInformationAmountDetails
+            {
+                TotalAmount = "102.21",
+                Currency = "USD"
+            };
+
+            orderInformationObj.AmountDetails = amountDetailsObj;
+
+
+            // Passing Transient token
+
+            var transientTokenObj = new Ptsv2paymentsTokenInformation { TransientTokenJwt = flexObj };
+
+
+            var requestObj = new CreatePaymentRequest
+            {
+                ProcessingInformation = processingInformationObj,
+                ClientReferenceInformation = clientReferenceInformationObj,
+                OrderInformation = orderInformationObj,
+                TokenInformation = transientTokenObj
+            };
+
+
+            try
+            {
+                var configDictionary = new Configuration().GetConfiguration();
+                var clientConfig = new CyberSource.Client.Configuration(merchConfigDictObj: configDictionary);
+                var apiInstance = new PaymentsApi(clientConfig);
+
+                var result = apiInstance.CreatePayment(requestObj);
+                
+                Console.WriteLine(result);
+
+                //Making response pretty & passing to page
+                ViewBag.paymentResponse =result;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Exception on calling the API: " + e.Message);
+                return null;
+            }
+
+
+
+
+            return View();
+        }
+
+        public ActionResult Token()
+        {
+            //dynamic flexObj = JValue.Parse(Request.Params["flexResponse"]);
+            dynamic flexObj = Request.Params["flexResponse"];
+
+            ViewBag.JWT = flexObj.Replace("\r\n", "").Replace("\"", "");
+
 
             return View();
         }
