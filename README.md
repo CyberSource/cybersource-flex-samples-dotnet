@@ -10,6 +10,12 @@ This repository provides simple examples demonstrating usage of the CyberSource 
 4. Choose either the flex-js-sample or flex-microform-sample as your startup project
 4. Run the Program (F5)
 
+
+Note:
+It may be nessesary to reinsatll the packages
+execute the following command in the NuGet package manager
+PM> Update-Package Microsoft.CodeDom.Providers.DotNetCompilerPlatform -r
+
 ## Requirements
 * Visual Studio 2017 
 
