@@ -20,10 +20,10 @@ namespace flex_microform_sample.Controllers
             /**
              * Generating Capture Context Request Payload
              * Defining Encryption Type = RsaOaep
-             * Defining TargetOrigin = http://localhost:65309
+             * Defining TargetOrigin = http://localhost:65309 or http://localhost:8080
              * 
              */
-            var requestObj = new GeneratePublicKeyRequest("RsaOaep256", "http://localhost:65309");
+            var requestObj = new GeneratePublicKeyRequest("RsaOaep256", "http://localhost:65309 http://localhost:8080");
 
             try
             {
