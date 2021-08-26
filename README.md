@@ -1,25 +1,30 @@
 # CyberSource Flex Samples (.NET)
 
-This repository provides simple examples demonstrating usage of the CyberSource Flex SDK using either a headless JavaScript call (flex-js-sample) or a fully customizable hosted field/microform which is incorporated into your checkout page (flex-microform-sample).  For more details on Secure Acceptance Flex visit our Developer Guide at https://developer.cybersource.com/api/developer-guides/dita-flex/SAFlexibleToken.html
+This repository provides simple examples demonstrating usage of the CyberSource Flex SDK using either 
+1. a headless JavaScript call (`flex-js-sample`) or 
+2. a fully customizable hosted field/microform which is incorporated into your checkout page (`flex-microform-sample` for .NET Framework 4.6.1 or `flex_microform_dotnet_core_sample` for .NET Core 3.1) 
+
+For more details on Secure Acceptance Flex visit our Developer Guide at https://developer.cybersource.com/api/developer-guides/dita-flex/SAFlexibleToken.html
 
 ## Usage
 
 1. Clone or download this repository.
-2. Open the solution cybersource-flex-samples-dotnet.sln in Visual Studio
+2. Open the solution `cybersource-flex-samples-dotnet.sln` in Visual Studio
 3. Update the Configuration class in HomeController.cs with your [CyberSource sandbox credentials](https://ebc2test.cybersource.com). 
-4. Choose either the flex-js-sample or flex-microform-sample as your startup project
+4. Choose either the `flex-js-sample` or `flex-microform-sample` or `flex_microform_dotnet_core_sample` as your startup project
 4. Run the Program (F5)
-
 
 Note:
 It may be nessesary to reinsatll the packages
 execute the following command in the NuGet package manager
+```powershell
 PM> Update-Package Microsoft.CodeDom.Providers.DotNetCompilerPlatform -r
+```
 
 ## Requirements
-* Visual Studio 2017 
+* Visual Studio 2017+
 
-**_NOTE: We also have samples for Flex available in Java, PHP & Node.js _**
+**_NOTE: We also have samples for Flex available in Java, PHP & Node.js_**
 
 ## API Reference
 While these examples use the JavaScript libraries which we recommend as the most convenient option, you can try out the APIs behind the JavaScript SDKs by visiting our API Reference at https://developer.cybersource.com/api/reference/api-reference.html
