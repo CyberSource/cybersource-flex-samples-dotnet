@@ -1,0 +1,45 @@
+﻿@using Newtonsoft.Json
+
+@{ 
+    var jwt = JsonConvert.SerializeObject(ViewBag.JWT);
+}
+
+<div class="container card">
+    <div class="card-body">
+        <form action="Receipt" id="my-token-form" method="post">
+            <h1>Token</h1>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th scope="col">Key</th>
+                        <th scope="col">value</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr scope="row">
+                        <td>Transient Token</td>
+                        <td>
+                            @Html.Raw(jwt)
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <button type="button" id="pay-button" class="btn btn-primary">Make a Payment with Transient Token</button>
+            <input type="hidden" id="flexresponse" name="flexresponse">
+        </form>
+    </div>
+</div>
+<script>
+    var payButton = document.querySelector('#pay-button');
+    var flexResponse = document.querySelector('#flexresponse');
+    var form = document.querySelector('#my-token-form');
+
+    payButton.addEventListener('click', function() {
+
+          var token = @Html.Raw(jwt);
+          flexResponse.value = JSON.stringify(token);
+          form.submit();
+    });
+</script>
+
