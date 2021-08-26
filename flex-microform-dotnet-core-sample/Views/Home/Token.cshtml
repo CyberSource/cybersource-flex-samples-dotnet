@@ -1,6 +1,7 @@
 ﻿@using Newtonsoft.Json
 
-@{ 
+@{
+    var cardholderName = ViewBag.CardHolderName;
     var jwt = JsonConvert.SerializeObject(ViewBag.JWT);
 }
 
@@ -16,12 +17,18 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr scope="row">
-                        <td>Transient Token</td>
-                        <td>
-                            @Html.Raw(jwt)
-                        </td>
-                    </tr>
+                <tr scope="row">
+                    <td>Card Holder's name</td>
+                    <td>
+                        @Html.Raw(cardholderName)
+                    </td>
+                </tr>
+                <tr scope="row">
+                    <td>Transient Token</td>
+                    <td>
+                        @Html.Raw(jwt)
+                    </td>
+                </tr>
                 </tbody>
             </table>
 

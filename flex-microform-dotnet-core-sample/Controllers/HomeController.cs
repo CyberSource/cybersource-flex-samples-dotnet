@@ -1,14 +1,13 @@
-﻿using flex_microform_dotnet_core_sample.Models;
+﻿using CyberSource.Api;
+using CyberSource.Model;
+using flex_microform_dotnet_core_sample.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Threading.Tasks;
-using CyberSource.Api;
-using CyberSource.Model;
-using Newtonsoft.Json;
 
 namespace flex_microform_dotnet_core_sample.Controllers
 {
@@ -40,14 +39,11 @@ namespace flex_microform_dotnet_core_sample.Controllers
     {
         private readonly ILogger<HomeController> _logger;
 
-        public HomeController(ILogger<HomeController> logger)
-        {
-            _logger = logger;
-        }
+        public HomeController(ILogger<HomeController> logger) => _logger = logger;
 
         public IActionResult Index() => View();
 
-        public IActionResult Checkout()
+        public async Task<IActionResult> CheckoutAsync()
         {
             try
             {
@@ -62,7 +58,7 @@ namespace flex_microform_dotnet_core_sample.Controllers
 
                 // Initiating public Key request 
                 // query parameter set to format=JWT for Flex 11
-                var result = apiInstance.GeneratePublicKey("JWT", requestObj);
+                var result = await apiInstance.GeneratePublicKeyAsync("JWT", requestObj);
 
                 _logger.LogInformation(JsonConvert.SerializeObject(result));
                 _logger.LogInformation(result.KeyId);
@@ -77,9 +73,81 @@ namespace flex_microform_dotnet_core_sample.Controllers
 
             return View();
         }
-        
+
+        /// <summary>
+        /// This is not important, just to show the token
+        /// </summary>
+        public IActionResult Token()
+        {
+            var flexObj = Request.Form["flexResponse"];
+            var cardHolderName = Request.Form["cardholderName"];
+
+            ViewBag.CardHolderName = cardHolderName[0];
+            ViewBag.JWT = flexObj[0].Replace("\r\n", "").Replace("\"", "");
+
+            return View();
+        }
+
+        public async Task<IActionResult> Receipt()
+        {
+            // This is the Transient token combining temporary token and the credit card info
+            var transientToken = Request.Form["flexResponse"][0]; // "eyJraWQiOiIwOEpYY20xUDhSWlBUQVhYN2s0Y2txSFpGVkVsMzFydCIsImFsZyI6IlJTMjU2In0.eyJkYXRhIjp7ImV4cGlyYXRpb25ZZWFyIjoiMjAyMyIsIm51bWJlciI6IjQxMTExMVhYWFhYWDExMTEiLCJleHBpcmF0aW9uTW9udGgiOiIwNCIsInR5cGUiOiIwMDEifSwiaXNzIjoiRmxleC8wNyIsImV4cCI6MTYyOTg4MjYyNSwidHlwZSI6Im1mLTAuMTEuMCIsImlhdCI6MTYyOTg4MTcyNiwianRpIjoiMUU0NVFORUxDNzZaSEs0NklDT0ZEVzEwWVlCSTQ2WVNPN1UzVTI3VEpIUjk4TlRFMThQTjYxMjYwOTAxRUJDQSIsImNvbnRlbnQiOnsicGF5bWVudEluZm9ybWF0aW9uIjp7ImNhcmQiOnsiZXhwaXJhdGlvblllYXIiOnsidmFsdWUiOiIyMDIzIn0sIm51bWJlciI6eyJtYXNrZWRWYWx1ZSI6IlhYWFhYWFhYWFhYWDExMTEiLCJiaW4iOiI0MTExMTEifSwic2VjdXJpdHlDb2RlIjp7fSwiZXhwaXJhdGlvbk1vbnRoIjp7InZhbHVlIjoiMDQifSwidHlwZSI6eyJ2YWx1ZSI6IjAwMSJ9fX19fQ.DUh1-xYTpDrZZPe3qsoLJUzpBp4zfT9wnG7RjkrrJVnZgwSHlfQZVzN6fLS3tHDzTKq2LY2JPzeJHufoJbGbtL1dSXTps6ukJF6pMuu3VV1b0iJNlmq4oatY4Zqpm-lU9PVlOYofD0sqb_RsQzFqlkaT9VJKSl29y0kGpc5kMLr6eUzms6gzW3Qos3GTuS_BQSvy8EX1DkpC-wrLqlRBgMmYL-k7QeKFq-JTpEbJHj12p6CXNRkcSknknTM5gqU1AqoGvoz3OiukrFCi3ELrvq6cbZWWGgM84DA738-th0VKah_9Hd66t4N89M0pxk-Iy8vSHtT-ptmDOYyKgJ77CQ"
+
+            try
+            {
+                // Same as above
+                var apiInstance = new PaymentsApi(
+                    new CyberSource.Client.Configuration(
+                        merchConfigDictObj: Configuration.GetDictionary()));
+
+                var requestObj = new CreatePaymentRequest
+                {
+                    // Processing Authorization Request
+                    // Code developed from CyberSource Rest Samples csharp
+                    // https://github.com/CyberSource/cybersource-rest-samples-csharp
+                    ProcessingInformation = new Ptsv2paymentsProcessingInformation { CommerceIndicator = "internet" },
+                    ClientReferenceInformation = new Ptsv2paymentsClientReferenceInformation { Code = "test_payment" },
+                    OrderInformation = new Ptsv2paymentsOrderInformation
+                    {
+                        BillTo = new Ptsv2paymentsOrderInformationBillTo
+                        {
+                            Country = "US",
+                            FirstName = "John",
+                            LastName = "Doe",
+                            Address1 = "1 Market St",
+                            PostalCode = "94105",
+                            Locality = "San Francisco",
+                            AdministrativeArea = "CA",
+                            Email = "test@cybs.com"
+                        },
+                        AmountDetails = new Ptsv2paymentsOrderInformationAmountDetails
+                        {
+                            TotalAmount = "102.21",
+                            Currency = "USD"
+                        }
+                    },
+                    // Passing Transient token
+                    TokenInformation = new Ptsv2paymentsTokenInformation { TransientTokenJwt = transientToken }
+                };
+
+                var result = await apiInstance.CreatePaymentAsync(requestObj);
+
+                _logger.LogInformation(JsonConvert.SerializeObject(result));
+
+                //Making response pretty & passing to page
+                ViewBag.paymentResponse = result;
+            }
+            catch (Exception e)
+            {
+                _logger.LogError("Exception on calling the API: " + e.Message);
+                return null;
+            }
+
+            return View();
+        }
+
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-        public IActionResult Error() 
+        public IActionResult Error()
             => View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
     }
 }
