@@ -1,38 +1,49 @@
 ﻿using CyberSource.Api;
 using CyberSource.Model;
+using flex_microform_dotnet_core_sample.Models;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.Web.Mvc;
+using System.Diagnostics;
+using System.Threading.Tasks;
 
-namespace flex_microform_sample.Controllers
+namespace flex_microform_dotnet_core_sample.Controllers
 {
+    public static class Configuration
+    {
+        public static Dictionary<string, string> GetDictionary()
+            => new Dictionary<string, string>
+            {
+                { "authenticationType", "HTTP_SIGNATURE" },
+                { "merchantID", "testrest" },
+                { "merchantsecretKey", "yBJxy6LjM2TmcPGu+GaJrHtkke25fPpUX+UY6/L/1tE=" },
+                { "merchantKeyId", "08c94330-f618-42a3-b09d-e1e43be5efda" },
+                { "keysDirectory", "Resource" },
+                { "keyFilename", "testrest" },
+                { "runEnvironment", "apitest.cybersource.com" },
+                { "keyAlias", "testrest" },
+                { "keyPass", "testrest" },
+                { "enableLog", "FALSE" },
+                { "logDirectory", string.Empty },
+                { "logFileName", string.Empty },
+                { "logFileMaxSize", "5242880" },
+                { "timeout", "1000" },
+                { "proxyAddress", string.Empty },
+                { "proxyPort", string.Empty }
+            };
+    }
+
     public class HomeController : Controller
     {
-        public static class Configuration
-        {
-            public static Dictionary<string, string> GetDictionary()
-                => new Dictionary<string, string>
-                {
-                    { "authenticationType", "HTTP_SIGNATURE" },
-                    { "merchantID", "testrest" },
-                    { "merchantsecretKey", "yBJxy6LjM2TmcPGu+GaJrHtkke25fPpUX+UY6/L/1tE=" },
-                    { "merchantKeyId", "08c94330-f618-42a3-b09d-e1e43be5efda" },
-                    { "keysDirectory", "Resource" },
-                    { "keyFilename", "testrest" },
-                    { "runEnvironment", "cybersource.environment.sandbox" },
-                    { "keyAlias", "testrest" },
-                    { "keyPass", "testrest" },
-                    { "enableLog", "FALSE" },
-                    { "logDirectory", string.Empty },
-                    { "logFileName", string.Empty },
-                    { "logFileMaxSize", "5242880" },
-                    { "timeout", "1000" },
-                    { "proxyAddress", string.Empty },
-                    { "proxyPort", string.Empty }
-                };
-        }
+        private readonly ILogger<HomeController> _logger;
 
-        public ActionResult Checkout()
+        public HomeController(ILogger<HomeController> logger) => _logger = logger;
+
+        public IActionResult Index() => View();
+
+        public async Task<IActionResult> CheckoutAsync()
         {
             try
             {
@@ -47,17 +58,17 @@ namespace flex_microform_sample.Controllers
 
                 // Initiating public Key request 
                 // query parameter set to format=JWT for Flex 11
-                var result = apiInstance.GeneratePublicKey(requestObj, "JWT");
+                var result = await apiInstance.GeneratePublicKeyAsync("JWT", requestObj);
 
-                Console.WriteLine(result);
-                Console.WriteLine(result.KeyId);
+                _logger.LogInformation(JsonConvert.SerializeObject(result));
+                _logger.LogInformation(result.KeyId);
 
                 // result.KeyId here is the temporary token
                 ViewBag.Jwk = result.KeyId;
             }
             catch (Exception e)
             {
-                Console.WriteLine("Exception on calling the API: " + e.Message);
+                _logger.LogError("Exception on calling the API: " + e.Message);
             }
 
             return View();
@@ -66,19 +77,21 @@ namespace flex_microform_sample.Controllers
         /// <summary>
         /// This is not important, just to show the token
         /// </summary>
-        public ActionResult Token()
+        public IActionResult Token()
         {
-            dynamic flexObj = Request.Params["flexResponse"];
+            var flexObj = Request.Form["flexResponse"];
+            var cardHolderName = Request.Form["cardholderName"];
 
-            ViewBag.JWT = flexObj.Replace("\r\n", "").Replace("\"", "");
+            ViewBag.CardHolderName = cardHolderName[0];
+            ViewBag.JWT = flexObj[0].Replace("\r\n", "").Replace("\"", "");
 
             return View();
         }
 
-        public ActionResult Receipt()
+        public async Task<IActionResult> Receipt()
         {
             // This is the Transient token combining temporary token and the credit card info
-            var transientToken = Request.Params["flexResponse"];
+            var transientToken = Request.Form["flexResponse"][0];
 
             try
             {
@@ -117,20 +130,24 @@ namespace flex_microform_sample.Controllers
                     TokenInformation = new Ptsv2paymentsTokenInformation { TransientTokenJwt = transientToken }
                 };
 
-                var result = apiInstance.CreatePayment(requestObj);
+                var result = await apiInstance.CreatePaymentAsync(requestObj);
 
-                Console.WriteLine(result);
+                _logger.LogInformation(JsonConvert.SerializeObject(result));
 
                 //Making response pretty & passing to page
-                ViewBag.paymentResponse = result;
+                ViewBag.PaymentResponse = result;
             }
             catch (Exception e)
             {
-                Console.WriteLine("Exception on calling the API: " + e.Message);
+                _logger.LogError("Exception on calling the API: " + e.Message);
                 return null;
             }
 
             return View();
         }
+
+        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+        public IActionResult Error()
+            => View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
     }
 }
