@@ -135,7 +135,7 @@ namespace flex_microform_dotnet_core_sample.Controllers
                 _logger.LogInformation(JsonConvert.SerializeObject(result));
 
                 //Making response pretty & passing to page
-                ViewBag.paymentResponse = result;
+                ViewBag.PaymentResponse = result;
             }
             catch (Exception e)
             {
