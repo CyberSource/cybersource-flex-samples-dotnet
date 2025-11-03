@@ -1,6 +1,8 @@
 ﻿@{
     var jss = new System.Web.Script.Serialization.JavaScriptSerializer();
-    var jwkJson = jss.Serialize(ViewBag.Jwk);
+    var jwt = jss.Serialize(ViewBag.Jwt);
+    var scriptURL = jss.Serialize(ViewBag.ScriptURL);
+    var integretyCheck = jss.Serialize(ViewBag.scriptIntegrity);
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -59,9 +61,9 @@
                 <div class="form-group col-md-6">
                     <label for="expYear">Expiry year</label>
                     <select id="expYear" class="form-control">
-                        <option>2021</option>
-                        <option>2022</option>
-                        <option>2023</option>
+                        <option>2025</option>
+                        <option>2026</option>
+                        <option>2027</option>
                     </select>
                 </div>
             </div>
@@ -74,7 +76,7 @@
 
     
 
-<script src="https://flex.cybersource.com/cybersource/assets/microform/0.11/flex-microform.min.js"></script>
+<script src=@Html.Raw(scriptURL) integrity=@Html.Raw(integretyCheck) crossorigin=”anonymous”></script>
 
 
 <script>
@@ -88,7 +90,7 @@
     var errorsOutput = document.querySelector('#errors-output');
 
     // the capture context that was requested server-side for this transaction
-    var captureContext = @Html.Raw(jwkJson);
+    var captureContext = @Html.Raw(jwt);
 
 
     // custom styles that will be applied to each field we create using Microform
