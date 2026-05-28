@@ -1,65 +1,132 @@
-﻿
 @{
- 
     var jss = new System.Web.Script.Serialization.JavaScriptSerializer();
     var jwt = jss.Serialize(ViewBag.JWT);
 }
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Transient Token</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css" integrity="sha384-PsH8R72JQ3SOdhVi3uxftmaW6Vc51MKb0q5P2rRUpPvrszuE4W1povHYgTpBfshb" crossorigin="anonymous">
 
-    <html lang="en">
-    <head>
-        <title>Token</title>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css" integrity="sha384-PsH8R72JQ3SOdhVi3uxftmaW6Vc51MKb0q5P2rRUpPvrszuE4W1povHYgTpBfshb" crossorigin="anonymous">
+    <style>
+        /* Monospace box for the raw JWT — word-break prevents horizontal overflow */
+        .token-raw {
+            font-family: monospace;
+            font-size: 12px;
+            word-break: break-all;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 12px;
+            margin-bottom: 24px;
+        }
 
-        <style>
-            .td-1 {
-                word-break: break-all;
-                word-wrap: break-word;
-            }
-        </style>
-    </head>
+        /* Pretty-printed JSON blocks for the decoded header and payload */
+        .decoded-json {
+            font-size: 12px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 12px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+    </style>
+</head>
 
-    <body>
-        <div class="container card">
+<body>
+    <div class="container">
+
+        <form action="Receipt" id="my-token-form" method="post">
+            @* @Html.AntiForgeryToken() emits a hidden __RequestVerificationToken field tied to
+               an encrypted cookie. The [ValidateAntiForgeryToken] attribute on Receipt() checks
+               that both are present and consistent, rejecting forged cross-origin requests. *@
+            @Html.AntiForgeryToken()
+            <input type="hidden" id="flexresponse" name="flexresponse">
+
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h1>Transient Token</h1>
+                    <p class="text-muted">
+                        Microform returned the following short-lived transient token JWT.
+                        This token represents the tokenized card and is passed to the
+                        CyberSource Payments API in place of a raw card number.
+                    </p>
+
+                    <h5>Raw Token</h5>
+                    <div class="token-raw">@ViewBag.JWT</div>
+
+                    <button type="button" id="pay-button" class="btn btn-primary">
+                        Make a Payment with this Token
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        <div class="card">
             <div class="card-body">
-                <form action="Receipt" id="my-token-form" method="post">
-                    <h1>Token</h1>
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th scope="col">Key</th>
-                                <th scope="col">value</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr scope="row">
-                                <td>Transient Token</td>
-                                <td>
-                                    @Html.Raw(jwt)
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <h2>Decoded Token Claims</h2>
+                <p class="text-muted">
+                    A JWT has three base64url-encoded segments: <code>header.payload.signature</code>.
+                    The header identifies the signing algorithm and key. The payload contains the
+                    claims. The signature (not shown) is the RS256 cryptographic proof that
+                    CyberSource issued this token.
+                </p>
 
-                    <button type="button" id="pay-button" class="btn btn-primary">Make a Payment with Transient Token</button>
-                    <input type="hidden" id="flexresponse" name="flexresponse">
-                </form>
+                <div class="row">
+                    <div class="col-md-4">
+                        <h5>Header</h5>
+                        <pre id="decoded-header" class="decoded-json"></pre>
+                    </div>
+                    <div class="col-md-8">
+                        <h5>Payload</h5>
+                        <pre id="decoded-payload" class="decoded-json"></pre>
+                    </div>
+                </div>
             </div>
         </div>
-        <script>
-            var payButton = document.querySelector('#pay-button');
-            var flexResponse = document.querySelector('#flexresponse');
-            var form = document.querySelector('#my-token-form');
 
-            payButton.addEventListener('click', function() {
+    </div>
 
-                  var token = @Html.Raw(jwt);
-                  flexResponse.value = JSON.stringify(token);
-                  form.submit();
-            });
-        </script>
+    <script>
+        // ── Pay button ────────────────────────────────────────────────────────────
+        var payButton   = document.querySelector('#pay-button');
+        var flexResponse = document.querySelector('#flexresponse');
+        var form        = document.querySelector('#my-token-form');
 
-    </body>
-    </html>
+        payButton.addEventListener('click', function () {
+            var token = @Html.Raw(jwt);
+            flexResponse.value = JSON.stringify(token);
+            form.submit();
+        });
 
+        // ── JWT decoder ───────────────────────────────────────────────────────────
+        // Decodes the header and payload segments of the transient token JWT and
+        // renders them as pretty-printed JSON so the claims are easy to inspect.
+        //
+        // JWT format:  base64url(header) . base64url(payload) . signature
+        // Only the first two segments are JSON; the signature is opaque binary.
+        (function () {
+            function base64UrlDecode(segment) {
+                // base64url uses '-' and '_' instead of '+' and '/'; restore them.
+                var b64 = segment.replace(/-/g, '+').replace(/_/g, '/');
+                // base64 requires length to be a multiple of 4; pad if necessary.
+                var pad = b64.length % 4;
+                if (pad) b64 += '===='.slice(0, 4 - pad);
+                return JSON.parse(atob(b64));
+            }
+
+            var parts = (@Html.Raw(jwt)).split('.');
+            if (parts.length === 3) {
+                var header  = base64UrlDecode(parts[0]);
+                var payload = base64UrlDecode(parts[1]);
+                document.getElementById('decoded-header').textContent  = JSON.stringify(header,  null, 2);
+                document.getElementById('decoded-payload').textContent = JSON.stringify(payload, null, 2);
+            }
+        }());
+    </script>
+
+</body>
+</html>

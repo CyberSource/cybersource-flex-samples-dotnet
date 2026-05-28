@@ -31,6 +31,10 @@
         <h1>Checkout</h1>
         <div id="errors-output" role="alert"></div>
         <form action="../../Home/Token" id="my-sample-form" method="post">
+            @* @Html.AntiForgeryToken() emits a hidden __RequestVerificationToken field tied to
+               an encrypted cookie. The [ValidateAntiForgeryToken] attribute on Token() checks
+               that both are present and consistent, rejecting forged cross-origin requests. *@
+            @Html.AntiForgeryToken()
             <div class="form-group">
                 <label for="cardholderName">Name</label>
                 <input id="cardholderName" class="form-control" name="cardholderName" placeholder="Name on the card">
@@ -61,9 +65,9 @@
                 <div class="form-group col-md-6">
                     <label for="expYear">Expiry year</label>
                     <select id="expYear" class="form-control">
-                        <option>2025</option>
                         <option>2026</option>
                         <option>2027</option>
+                        <option>2028</option>
                     </select>
                 </div>
             </div>
